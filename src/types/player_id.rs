@@ -5,9 +5,9 @@ use crate::types::Team;
 pub struct PlayerId(u8);
 
 impl PlayerId {
-    pub fn new(id: u8) -> anyhow::Result<Self> {
+    pub fn new(id: u8) -> Result<PlayerId, PlayerIdParseError> {
         if id > 20 || !id.is_multiple_of(2) {
-            Err(PlayerIdParseError { bad_id: id }.into())
+            Err(PlayerIdParseError { bad_id: id })
         } else {
             Ok(PlayerId(id))
         }
