@@ -1,8 +1,10 @@
+mod traits;
 mod types;
 
 use std::fs::File;
 
 use source2_demo::{prelude::*, proto::CNetMsgTick};
+use traits::Locationable;
 use types::{GameTime, PlayerId};
 
 #[derive(Default)]
@@ -18,8 +20,9 @@ impl Wards {
         if event == EntityEvents::Created && entity.class().name() == "CDOTA_NPC_Observer_Ward" {
             let time = self.calculate_game_time(ctx);
             let owner_player_id = PlayerId::new(property!(entity, "m_nPlayerOwnerID"))?;
+            let location = entity.location()?;
             println!(
-                "Observer ward is placed by {}! Time: {time}",
+                "Observer ward is placed by {}! Time: {time}, location: {location}",
                 owner_player_id.team(),
             );
         }
