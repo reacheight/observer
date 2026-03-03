@@ -2,11 +2,12 @@ use std::{error, fmt};
 
 use crate::types::Team;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PlayerId(u8);
 
 impl PlayerId {
     pub fn new(id: u8) -> Result<PlayerId, PlayerIdParseError> {
-        if id > 20 || !id.is_multiple_of(2) {
+        if id > 18 || !id.is_multiple_of(2) {
             Err(PlayerIdParseError { bad_id: id })
         } else {
             Ok(PlayerId(id))
@@ -22,7 +23,7 @@ impl PlayerId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct PlayerIdParseError {
     bad_id: u8,
 }
