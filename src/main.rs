@@ -5,7 +5,7 @@ use std::fs::File;
 
 use source2_demo::{prelude::*, proto::CNetMsgTick};
 use traits::{WithLocation, WithPlayerId};
-use types::GameTime;
+use types::{GamePhase, GameTime};
 
 #[derive(Default)]
 struct Wards {
@@ -52,14 +52,20 @@ impl Wards {
                             try_property!(game_rules, "m_pGameRules.m_flGameStartTime")?;
 
                         if start_time > time_eps {
-                            return Some(GameTime::new(true, true, time - start_time));
+                            return Some(GameTime {
+                                game_phase: GamePhase::InGame,
+                                time_seconds: time - start_time,
+                            });
                         } else {
-                            return Some(GameTime::new(true, false, time - transition_time));
+                            return Some(GameTime {
+                                game_phase: GamePhase::PreGame,
+                                time_seconds: time - transition_time,
+                            });
                         }
                     }
                 }
 
-                Some(GameTime::new(false, false, 0.0))
+                Some(GameTime::default())
             })
             .unwrap_or_default()
     }

@@ -1,25 +1,21 @@
 use std::fmt;
 
-#[derive(Debug)]
-pub struct GameTime {
-    pub pre_game_started: bool,
-    pub game_started: bool,
-    pub time_seconds: f32,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GamePhase {
+    NotStarted,
+    PreGame,
+    InGame,
 }
 
-impl GameTime {
-    pub fn new(pre_game_started: bool, game_started: bool, time_seconds: f32) -> Self {
-        GameTime {
-            pre_game_started,
-            game_started,
-            time_seconds,
-        }
-    }
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GameTime {
+    pub game_phase: GamePhase,
+    pub time_seconds: f32,
 }
 
 impl fmt::Display for GameTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if !self.pre_game_started {
+        if self.game_phase == GamePhase::NotStarted {
             return write!(f, "game not started");
         }
 
@@ -27,20 +23,21 @@ impl fmt::Display for GameTime {
         let minutes = seconds_abs / 60;
         let seconds = seconds_abs % 60;
 
-        let seconds_str = if seconds < 10 {
-            format!("0{seconds}")
+        let sign = if self.game_phase == GamePhase::InGame {
+            ""
         } else {
-            format!("{seconds}")
+            "-"
         };
 
-        let sign = if self.game_started { "" } else { "-" };
-
-        write!(f, "{sign}{minutes}:{seconds_str}")
+        write!(f, "{sign}{minutes}:{seconds:02}")
     }
 }
 
 impl Default for GameTime {
     fn default() -> Self {
-        Self::new(false, false, 0.0)
+        Self {
+            game_phase: GamePhase::NotStarted,
+            time_seconds: 0.0,
+        }
     }
 }

@@ -3,7 +3,7 @@ pub mod location;
 pub mod player_id;
 pub mod team;
 
-pub use game_time::GameTime;
+pub use game_time::{GamePhase, GameTime};
 pub use location::Location;
 pub use player_id::PlayerId;
 pub use team::Team;
