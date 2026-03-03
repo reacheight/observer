@@ -1,41 +1,36 @@
-use std::{error, fmt};
-
 use crate::types::Location;
-use source2_demo::{Entity, try_property};
+use source2_demo::{
+    Entity,
+    error::{EntityError, FieldValueError},
+    property,
+};
 
 pub trait WithLocation {
     fn location(&self) -> Result<Location, LocationError>;
-    fn try_location(&self) -> Option<Location>;
 }
-
-#[derive(Debug)]
-pub struct LocationError;
-
-impl fmt::Display for LocationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "can't get location")
-    }
-}
-
-impl error::Error for LocationError {}
 
 impl WithLocation for Entity {
-    fn try_location(&self) -> Option<Location> {
-        let get_coord = |coord_literal| {
-            let cell: u16 = try_property!(self, "CBodyComponent.m_cell{coord_literal}")?;
-            let vec: f32 = try_property!(self, "CBodyComponent.m_vec{coord_literal}")?;
+    fn location(&self) -> Result<Location, LocationError> {
+        let get_coord = |coord_literal: &str| -> Result<f32, LocationError> {
+            let cell: u16 = property!(self, "CBodyComponent.m_cell{coord_literal}");
+            let vec: f32 = property!(self, "CBodyComponent.m_vec{coord_literal}");
 
             let coordinate = (cell - 64) as f32 * 128.0 + vec;
-            Some(coordinate)
+            Ok(coordinate)
         };
 
         let x = get_coord("X")?;
         let y = get_coord("Y")?;
 
-        Some(Location { x, y })
+        Ok(Location { x, y })
     }
+}
 
-    fn location(&self) -> Result<Location, LocationError> {
-        self.try_location().ok_or(LocationError)
-    }
+#[derive(thiserror::Error, Debug)]
+pub enum LocationError {
+    #[error(transparent)]
+    EntityError(#[from] EntityError),
+
+    #[error(transparent)]
+    PropertyValueError(#[from] FieldValueError),
 }
