@@ -369,6 +369,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "source2-demo",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
