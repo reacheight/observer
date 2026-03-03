@@ -4,20 +4,20 @@ use crate::types::Location;
 use source2_demo::{Entity, try_property};
 
 pub trait WithLocation {
-    fn location(&self) -> Result<Location, LocationParseError>;
+    fn location(&self) -> Result<Location, LocationError>;
     fn try_location(&self) -> Option<Location>;
 }
 
 #[derive(Debug)]
-pub struct LocationParseError;
+pub struct LocationError;
 
-impl fmt::Display for LocationParseError {
+impl fmt::Display for LocationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "can't get location")
     }
 }
 
-impl error::Error for LocationParseError {}
+impl error::Error for LocationError {}
 
 impl WithLocation for Entity {
     fn try_location(&self) -> Option<Location> {
@@ -35,7 +35,7 @@ impl WithLocation for Entity {
         Some(Location::new(x, y))
     }
 
-    fn location(&self) -> Result<Location, LocationParseError> {
-        self.try_location().ok_or(LocationParseError)
+    fn location(&self) -> Result<Location, LocationError> {
+        self.try_location().ok_or(LocationError)
     }
 }
