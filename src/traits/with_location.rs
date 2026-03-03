@@ -32,7 +32,7 @@ impl WithLocation for Entity {
         let x = get_coord("X")?;
         let y = get_coord("Y")?;
 
-        Some(Location::new(x, y))
+        Some(Location { x, y })
     }
 
     fn location(&self) -> Result<Location, LocationError> {
