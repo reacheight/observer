@@ -4,8 +4,8 @@ mod types;
 use std::fs::File;
 
 use source2_demo::{prelude::*, proto::CNetMsgTick};
-use traits::WithLocation;
-use types::{GameTime, PlayerId};
+use traits::{WithLocation, WithPlayerId};
+use types::GameTime;
 
 #[derive(Default)]
 struct Wards {
@@ -19,12 +19,9 @@ impl Wards {
     fn on_entity(&mut self, ctx: &Context, event: EntityEvents, entity: &Entity) -> ObserverResult {
         if event == EntityEvents::Created && entity.class().name() == "CDOTA_NPC_Observer_Ward" {
             let time = self.calculate_game_time(ctx);
-            let owner_player_id = PlayerId::new(property!(entity, "m_nPlayerOwnerID"))?;
+            let team = entity.player_id()?.team();
             let location = entity.location()?;
-            println!(
-                "Observer ward is placed by {}! Time: {time}, location: {location}",
-                owner_player_id.team(),
-            );
+            println!("Observer ward is placed by {team}! Time: {time}, location: {location}");
         }
 
         Ok(())
