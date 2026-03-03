@@ -1,3 +1,3 @@
-pub mod locationable;
+pub mod with_location;
 
-pub use locationable::Locationable;
+pub use with_location::WithLocation;

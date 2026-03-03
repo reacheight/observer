@@ -3,7 +3,7 @@ use std::{error, fmt};
 use crate::types::Location;
 use source2_demo::{Entity, try_property};
 
-pub trait Locationable {
+pub trait WithLocation {
     fn location(&self) -> Result<Location, LocationParseError>;
     fn try_location(&self) -> Option<Location>;
 }
@@ -13,13 +13,13 @@ pub struct LocationParseError;
 
 impl fmt::Display for LocationParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "can't parse location")
+        write!(f, "can't get location")
     }
 }
 
 impl error::Error for LocationParseError {}
 
-impl Locationable for Entity {
+impl WithLocation for Entity {
     fn try_location(&self) -> Option<Location> {
         let get_coord = |coord_literal| {
             let cell: u16 = try_property!(self, "CBodyComponent.m_cell{coord_literal}")?;

@@ -4,7 +4,7 @@ mod types;
 use std::fs::File;
 
 use source2_demo::{prelude::*, proto::CNetMsgTick};
-use traits::Locationable;
+use traits::WithLocation;
 use types::{GameTime, PlayerId};
 
 #[derive(Default)]
