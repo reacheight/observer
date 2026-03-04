@@ -1,8 +1,9 @@
 mod traits;
 mod types;
 
-use std::fs::File;
+use std::{env, fs::File};
 
+use anyhow::Context as AnyhowContext;
 use source2_demo::{prelude::*, proto::CNetMsgTick};
 use traits::{WithLocation, WithPlayerId};
 use types::{GamePhase, GameTime};
@@ -76,13 +77,32 @@ impl Wards {
 }
 
 fn main() -> anyhow::Result<()> {
-    const MATCH_ID: &str = "8710135523";
-    let replay_file_path = format!("{MATCH_ID}.dem");
+    let args = env::args().skip(1);
 
-    let mut parser = Parser::from_reader(File::open(replay_file_path)?)?;
-    parser.register_observer::<Wards>();
+    for arg in args {
+        let file =
+            File::open(&arg).context(format!("can't open file passed as an argument: '{arg}'"))?;
+        let mut parser = Parser::from_reader(file)
+            .context(format!("can't create a parser for a file '{arg}'"))?;
 
-    parser.run_to_end()?;
+        let match_id = parser
+            .replay_info()
+            .game_info
+            .as_ref()
+            .and_then(|info| info.dota.as_ref())
+            .and_then(|dota| dota.match_id)
+            .context(format!(
+                "can't get match id from a parser for a file '{arg}'"
+            ))?;
+
+        parser.register_observer::<Wards>();
+
+        println!("Starting to parse match {}!", match_id);
+        parser
+            .run_to_end()
+            .context(format!("error during parsing match {match_id}"))?;
+        println!("Finished parsing {}!\n", match_id);
+    }
 
     Ok(())
 }
