@@ -34,6 +34,7 @@ impl Wards {
         Ok(())
     }
 
+    // TODO: learn how to insert Entities and incapsulate somewhere
     fn calculate_game_time(&self, ctx: &Context) -> GameTime {
         ctx.entities()
             .get_by_class_name("CDOTAGamerulesProxy")
