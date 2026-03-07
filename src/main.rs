@@ -1,16 +1,30 @@
 mod traits;
 mod types;
 
-use std::{env, fs::File};
+use std::{collections::HashMap, env, fs::File};
 
 use anyhow::Context as AnyhowContext;
 use source2_demo::{prelude::*, proto::CNetMsgTick};
 use traits::{WithLocation, WithPlayerId};
-use types::{GamePhase, GameTime};
+use types::{GamePhase, GameTime, Location, Team};
 
-#[derive(Default)]
+struct WardEntry {
+    time: GameTime,
+    location: Location,
+}
+
 struct Wards {
     server_tick: u32,
+    wards: HashMap<Team, Vec<WardEntry>>,
+}
+
+impl Default for Wards {
+    fn default() -> Self {
+        Self {
+            server_tick: 0,
+            wards: HashMap::from([(Team::Radiant, vec![]), (Team::Dire, vec![])]),
+        }
+    }
 }
 
 #[observer]
@@ -19,10 +33,12 @@ impl Wards {
     #[on_entity]
     fn on_entity(&mut self, ctx: &Context, event: EntityEvents, entity: &Entity) -> ObserverResult {
         if event == EntityEvents::Created && entity.class().name() == "CDOTA_NPC_Observer_Ward" {
-            let time = self.calculate_game_time(ctx);
             let team = entity.player_id()?.team();
+            let time = self.calculate_game_time(ctx);
             let location = entity.location()?;
-            println!("Observer ward is placed by {team}! Time: {time}, location: {location}");
+            self.wards
+                .entry(team)
+                .and_modify(|entries| entries.push(WardEntry { time, location }));
         }
 
         Ok(())
@@ -96,13 +112,20 @@ fn main() -> anyhow::Result<()> {
                 "can't get match id from a parser for a file '{arg}'"
             ))?;
 
-        parser.register_observer::<Wards>();
+        let wards_observer = parser.register_observer::<Wards>();
 
         println!("Starting to parse match {}!", match_id);
         parser
             .run_to_end()
             .context(format!("error during parsing match {match_id}"))?;
-        println!("Finished parsing {}!\n", match_id);
+        println!("Finished parsing {}:\n", match_id);
+        for team in [Team::Radiant, Team::Dire] {
+            println!("Observer wards placed by {team}:");
+            for ward in wards_observer.borrow().wards.get(&team).unwrap_or(&vec![]) {
+                println!("{} at {}", ward.time, ward.location);
+            }
+            println!();
+        }
     }
 
     Ok(())
