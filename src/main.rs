@@ -31,7 +31,10 @@ fn main() -> anyhow::Result<()> {
 
         let game_time_obs = parser.register_observer::<GameTimeObserver>();
         let wards_observer = parser.register_observer::<WardsObserver>();
-        wards_observer.borrow_mut().add_game_time_obs(game_time_obs);
+
+        wards_observer
+            .borrow_mut()
+            .add_game_time_obs(game_time_obs.clone());
 
         println!("Starting to parse match {}!", match_id);
         parser
