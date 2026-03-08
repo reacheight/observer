@@ -2,7 +2,7 @@ mod observers;
 mod traits;
 mod types;
 
-use std::{env, fs::File};
+use std::{env, fs::File, time::Instant};
 
 use anyhow::Context as _;
 use source2_demo::prelude::*;
@@ -12,6 +12,8 @@ use types::Team;
 
 fn main() -> anyhow::Result<()> {
     let args = env::args().skip(1);
+
+    let start = Instant::now();
 
     for arg in args {
         let file =
@@ -49,6 +51,8 @@ fn main() -> anyhow::Result<()> {
             println!();
         }
     }
+
+    println!("Parsing finished in {:?}", start.elapsed());
 
     Ok(())
 }
