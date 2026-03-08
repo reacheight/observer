@@ -4,7 +4,7 @@ mod types;
 
 use std::{env, fs::File};
 
-use anyhow::Context as AnyhowContext;
+use anyhow::Context as _;
 use source2_demo::prelude::*;
 
 use observers::{GameTimeObserver, WardsObserver};
