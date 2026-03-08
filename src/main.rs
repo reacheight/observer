@@ -1,7 +1,7 @@
 mod traits;
 mod types;
 
-use std::{collections::HashMap, env, fs::File};
+use std::{cell::RefCell, collections::HashMap, env, fs::File, rc::Rc};
 
 use anyhow::Context as AnyhowContext;
 use source2_demo::{prelude::*, proto::CNetMsgTick};
@@ -13,44 +13,23 @@ struct WardEntry {
     location: Location,
 }
 
-struct Wards {
+#[derive(Default)]
+struct GameTimeObserver {
     server_tick: u32,
-    wards: HashMap<Team, Vec<WardEntry>>,
-}
-
-impl Default for Wards {
-    fn default() -> Self {
-        Self {
-            server_tick: 0,
-            wards: HashMap::from([(Team::Radiant, vec![]), (Team::Dire, vec![])]),
-        }
-    }
 }
 
 #[observer]
-#[uses_entities]
-impl Wards {
-    #[on_entity]
-    fn on_entity(&mut self, ctx: &Context, event: EntityEvents, entity: &Entity) -> ObserverResult {
-        if event == EntityEvents::Created && entity.class().name() == "CDOTA_NPC_Observer_Ward" {
-            let team = entity.player_id()?.team();
-            let time = self.calculate_game_time(ctx);
-            let location = entity.location()?;
-            self.wards
-                .entry(team)
-                .and_modify(|entries| entries.push(WardEntry { time, location }));
-        }
-
-        Ok(())
-    }
-
+impl GameTimeObserver {
     #[on_message]
     fn on_message(&mut self, message: CNetMsgTick) -> ObserverResult {
         self.server_tick = message.tick();
         Ok(())
     }
 
-    // TODO: learn how to insert Entities and incapsulate somewhere
+    fn time(&self) -> f32 {
+        self.server_tick as f32 / 29.99999
+    }
+
     fn calculate_game_time(&self, ctx: &Context) -> GameTime {
         ctx.entities()
             .get_by_class_name("CDOTAGamerulesProxy")
@@ -87,9 +66,41 @@ impl Wards {
             })
             .unwrap_or_default()
     }
+}
 
-    fn time(&self) -> f32 {
-        self.server_tick as f32 / 29.99999
+struct Wards {
+    wards: HashMap<Team, Vec<WardEntry>>,
+    game_time_obs: Rc<RefCell<GameTimeObserver>>,
+}
+
+impl Default for Wards {
+    fn default() -> Self {
+        Self {
+            wards: HashMap::from([(Team::Radiant, vec![]), (Team::Dire, vec![])]),
+            game_time_obs: Rc::new(RefCell::new(GameTimeObserver::default())),
+        }
+    }
+}
+
+#[observer]
+#[uses_entities]
+impl Wards {
+    #[on_entity]
+    fn on_entity(&mut self, ctx: &Context, event: EntityEvents, entity: &Entity) -> ObserverResult {
+        if event == EntityEvents::Created && entity.class().name() == "CDOTA_NPC_Observer_Ward" {
+            let team = entity.player_id()?.team();
+            let time = self.game_time_obs.borrow().calculate_game_time(ctx);
+            let location = entity.location()?;
+            self.wards
+                .entry(team)
+                .and_modify(|entries| entries.push(WardEntry { time, location }));
+        }
+
+        Ok(())
+    }
+
+    fn add_game_time_obs(&mut self, game_time_obs: Rc<RefCell<GameTimeObserver>>) {
+        self.game_time_obs = game_time_obs;
     }
 }
 
@@ -112,7 +123,9 @@ fn main() -> anyhow::Result<()> {
                 "can't get match id from a parser for a file '{arg}'"
             ))?;
 
+        let game_time_obs = parser.register_observer::<GameTimeObserver>();
         let wards_observer = parser.register_observer::<Wards>();
+        wards_observer.borrow_mut().add_game_time_obs(game_time_obs);
 
         println!("Starting to parse match {}!", match_id);
         parser
