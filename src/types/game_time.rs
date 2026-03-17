@@ -5,18 +5,24 @@ pub enum GamePhase {
     NotStarted,
     PreGame,
     InGame,
+    Ended,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GameTime {
     pub game_phase: GamePhase,
     pub time_seconds: f32,
+    //TODO: is_paused
 }
 
 impl fmt::Display for GameTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.game_phase == GamePhase::NotStarted {
             return write!(f, "game not started");
+        }
+
+        if self.game_phase == GamePhase::Ended {
+            return write!(f, "game ended");
         }
 
         let seconds_abs = self.time_seconds.abs() as i32;
