@@ -41,7 +41,7 @@ fn main() -> anyhow::Result<()> {
 
         every_30_seconds_observer
             .borrow_mut()
-            .init(30.0, game_time_obs.clone());
+            .init(30, game_time_obs.clone());
 
         println!("Starting to parse match {}!", match_id);
         parser
