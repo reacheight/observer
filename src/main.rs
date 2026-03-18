@@ -7,7 +7,7 @@ use std::{env, fs::File, time::Instant};
 use anyhow::Context as _;
 use source2_demo::prelude::*;
 
-use observers::{GameTimeObserver, WardsObserver};
+use observers::{GameTimeObserver, PeriodicObserver, WardsObserver};
 use types::Team;
 
 fn main() -> anyhow::Result<()> {
@@ -33,10 +33,15 @@ fn main() -> anyhow::Result<()> {
 
         let game_time_obs = parser.register_observer::<GameTimeObserver>();
         let wards_observer = parser.register_observer::<WardsObserver>();
+        let every_30_seconds_observer = parser.register_observer::<PeriodicObserver>();
 
         wards_observer
             .borrow_mut()
             .add_game_time_obs(game_time_obs.clone());
+
+        every_30_seconds_observer
+            .borrow_mut()
+            .init(30.0, game_time_obs.clone());
 
         println!("Starting to parse match {}!", match_id);
         parser
