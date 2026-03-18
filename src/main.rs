@@ -2,13 +2,21 @@ mod observers;
 mod traits;
 mod types;
 
-use std::{env, fs::File, time::Instant};
+use std::{cell::RefCell, env, fs::File, rc::Rc, time::Instant};
 
 use anyhow::Context as _;
 use source2_demo::prelude::*;
 
-use observers::{GameTimeObserver, PeriodicObserver, WardsObserver};
-use types::Team;
+use observers::{GameTimeObserver, PeriodicObserver, PeriodicObserverRoutine, WardsObserver};
+use types::{GameTime, Team};
+
+struct PrintingTimeRoutine;
+
+impl PeriodicObserverRoutine for PrintingTimeRoutine {
+    fn on_iteration(&mut self, _ctx: &Context, current_time: GameTime) {
+        println!("PrintingTimeRoutine triggered, current time is {current_time}");
+    }
+}
 
 fn main() -> anyhow::Result<()> {
     let args = env::args().skip(1);
@@ -39,9 +47,13 @@ fn main() -> anyhow::Result<()> {
             .borrow_mut()
             .add_game_time_obs(game_time_obs.clone());
 
-        every_30_seconds_observer
-            .borrow_mut()
-            .init(30, game_time_obs.clone());
+        let printing_time_routine = PrintingTimeRoutine;
+
+        every_30_seconds_observer.borrow_mut().init(
+            30,
+            game_time_obs.clone(),
+            vec![Rc::new(RefCell::new(printing_time_routine))],
+        );
 
         println!("Starting to parse match {}!", match_id);
         parser

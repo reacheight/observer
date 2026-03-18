@@ -2,24 +2,34 @@ use std::{cell::RefCell, rc::Rc};
 
 use source2_demo::prelude::*;
 
-use crate::{observers::GameTimeObserver, types::GamePhase};
+use crate::{
+    observers::GameTimeObserver,
+    types::{GamePhase, GameTime},
+};
 
 const TIME_EPS: f32 = 0.001;
 
 #[derive(Default)]
 pub struct PeriodicObserver {
-    interval_seconds: i32,
+    interval_seconds: u32,
     game_time: Rc<RefCell<GameTimeObserver>>,
+    routines: Vec<Rc<RefCell<dyn PeriodicObserverRoutine>>>,
 
-    iteration_number: i32,
+    iteration_number: u32,
 }
 
 #[observer]
 #[uses_entities]
 impl PeriodicObserver {
-    pub fn init(&mut self, interval_seconds: i32, game_time: Rc<RefCell<GameTimeObserver>>) {
+    pub fn init(
+        &mut self,
+        interval_seconds: u32,
+        game_time: Rc<RefCell<GameTimeObserver>>,
+        routines: Vec<Rc<RefCell<dyn PeriodicObserverRoutine>>>,
+    ) {
         self.interval_seconds = interval_seconds;
         self.game_time = game_time;
+        self.routines = routines;
         self.iteration_number = 0;
     }
 
@@ -34,9 +44,15 @@ impl PeriodicObserver {
             return Ok(());
         }
 
-        println!("observer triggered, curent_time is {curent_time}");
-        self.iteration_number += 1;
+        for routine in &self.routines {
+            routine.borrow_mut().on_iteration(ctx, curent_time);
+        }
 
+        self.iteration_number += 1;
         Ok(())
     }
+}
+
+pub trait PeriodicObserverRoutine {
+    fn on_iteration(&mut self, ctx: &Context, current_time: GameTime);
 }
