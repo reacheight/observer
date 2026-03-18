@@ -37,14 +37,11 @@ impl GameTimeObserver {
                             try_property!(game_rules, "m_pGameRules.m_flGameStartTime")?;
 
                         if start_time > time_eps {
-                            let _end_time: f32 =
-                                try_property!(game_rules, "m_pGameRules.m_flGameEndTime")?;
-                            let game_state: i8 =
+                            let end_time: f32 =
                                 try_property!(game_rules, "m_pGameRules.m_flGameEndTime")?;
 
-                            //TODO: correct game end condidion
                             return Some(GameTime {
-                                game_phase: if game_state == 6 {
+                                game_phase: if end_time > time_eps {
                                     GamePhase::Ended
                                 } else {
                                     GamePhase::InGame
