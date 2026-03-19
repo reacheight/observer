@@ -4,17 +4,52 @@ mod types;
 
 use std::{cell::RefCell, env, fs::File, rc::Rc, time::Instant};
 
-use anyhow::Context as _;
-use source2_demo::prelude::*;
+use anyhow::{Context as _, Ok};
+use source2_demo::{FieldValue, prelude::*};
 
 use observers::{GameTimeObserver, PeriodicObserver, PeriodicObserverRoutine, WardsObserver};
 use types::{GameTime, Team};
 
-struct PrintingTimeRoutine;
+#[derive(Default)]
+struct NetworthLeaderRoutine {
+    leaders: Vec<Team>,
+}
 
-impl PeriodicObserverRoutine for PrintingTimeRoutine {
-    fn on_iteration(&mut self, _ctx: &Context, current_time: GameTime) {
-        println!("PrintingTimeRoutine triggered, current time is {current_time}");
+impl NetworthLeaderRoutine {
+    fn calculate_team_top_networth(data: &Entity) -> anyhow::Result<i32> {
+        let networth = (0..=4)
+            .map(|i| data.get_property_by_name(&format!("m_vecDataTeam.{i:04}.m_iNetWorth")))
+            .collect::<Result<Vec<&FieldValue>, _>>()
+            .context("Couldn't get networth values from entity")?
+            .into_iter()
+            .map(|v| v.try_into())
+            .collect::<Result<Vec<i32>, _>>()
+            .context("Couldn't convert networth values")?;
+
+        networth
+            .into_iter()
+            .max()
+            .context("Couldn't get networth from entity")
+    }
+}
+
+impl PeriodicObserverRoutine for NetworthLeaderRoutine {
+    fn on_iteration(&mut self, ctx: &Context, _current_time: GameTime) -> ObserverResult {
+        let radiant_data = ctx.entities().get_by_class_name("CDOTA_DataRadiant")?;
+        let dire_data = ctx.entities().get_by_class_name("CDOTA_DataDire")?;
+
+        let radiant_top_nw = NetworthLeaderRoutine::calculate_team_top_networth(radiant_data)?;
+        let dire_top_nw = NetworthLeaderRoutine::calculate_team_top_networth(dire_data)?;
+
+        let leader = if radiant_top_nw > dire_top_nw {
+            Team::Radiant
+        } else {
+            Team::Dire
+        };
+
+        self.leaders.push(leader);
+
+        Ok(())
     }
 }
 
@@ -41,18 +76,18 @@ fn main() -> anyhow::Result<()> {
 
         let game_time_obs = parser.register_observer::<GameTimeObserver>();
         let wards_observer = parser.register_observer::<WardsObserver>();
-        let every_30_seconds_observer = parser.register_observer::<PeriodicObserver>();
 
         wards_observer
             .borrow_mut()
             .add_game_time_obs(game_time_obs.clone());
 
-        let printing_time_routine = PrintingTimeRoutine;
+        let networth_leader_observer = parser.register_observer::<PeriodicObserver>();
+        let networth_leader_routine = Rc::new(RefCell::new(NetworthLeaderRoutine::default()));
 
-        every_30_seconds_observer.borrow_mut().init(
-            30,
+        networth_leader_observer.borrow_mut().init(
+            60,
             game_time_obs.clone(),
-            vec![Rc::new(RefCell::new(printing_time_routine))],
+            networth_leader_routine.clone(),
         );
 
         println!("Starting to parse match {}!", match_id);
@@ -67,6 +102,11 @@ fn main() -> anyhow::Result<()> {
             }
             println!();
         }
+
+        println!(
+            "Networth leader every 30 seconds: {:?}",
+            networth_leader_routine.borrow().leaders
+        );
     }
 
     println!("Parsing finished in {:?}", start.elapsed());
